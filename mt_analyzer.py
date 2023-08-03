@@ -31,14 +31,14 @@ def analyze_one_apk_by_mariana_trench(apk_path):
     dir_name, full_file_name = os.path.split(apk_path)
     file_name, file_ext = os.path.splitext(full_file_name)
     if file_ext == ".apk":
-        out_directory = dir_name + file_name
+        out_directory = dir_name + "/" + file_name
         if not os.path.exists(out_directory):
             os.makedirs(out_directory)
-        cmd = "mariana-trench --apk_path=" + apk_path + " --output-directory=" + out_directory
-        result = subprocess.Popen(cmd, Shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        cmd = "mariana-trench --apk-path=" + apk_path + " --output-directory=" + out_directory
+        result = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, text=True).communicate()
         print(result)
-        cmd = "sapp --tool=mariana-trench analyze " + out_directory
-        result = result = subprocess.Popen(cmd, Shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        cmd = "sapp --tool=mariana-trench --database-name=" + out_directory + "/sapp.db" + " analyze " + out_directory
+        result = result = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,text=True).communicate()
         print(result)
 
 
