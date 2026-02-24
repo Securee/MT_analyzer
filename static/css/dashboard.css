@@ -1,0 +1,31 @@
+/* Dashboard Specific Styles */
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 40px; background-color: #f5f7fa; color: #333; }
+h1 { color: #2c3e50; }
+.container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 900px; margin: 0 auto; }
+.target-box { background: #ecf0f1; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; align-items: center; }
+.target-box input { flex: 1; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 16px; margin-right: 10px; }
+.target-box button { background-color: #f1c40f; color: #333; border: none; padding: 10px 20px; text-decoration: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.target-box button:hover { background-color: #f39c12; }
+
+ul { list-style-type: none; padding: 0; }
+li { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+li:last-child { border-bottom: none; }
+.apk-name { font-weight: bold; font-size: 1.1em; color: #34495e; }
+.apk-path { font-size: 0.85em; color: #7f8c8d; margin-top: 4px; }
+
+.btn { border: none; padding: 8px 16px; text-decoration: none; border-radius: 4px; cursor: pointer; transition: background 0.3s; color: white; display: inline-block; }
+.btn-analyze { background-color: #e67e22; }
+.btn-analyze:hover { background-color: #d35400; }
+.btn-start { background-color: #3498db; }
+.btn-start:hover { background-color: #2980b9; }
+.btn-running { background-color: #2ecc71; }
+.btn-running:hover { background-color: #27ae60; }
+.btn-stop { background-color: #e74c3c; margin-left: 8px; }
+.btn-stop:hover { background-color: #c0392b; }
+
+.status-badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold; margin-bottom: 5px; }
+.badge-analyzed { background-color: #d4efdf; color: #1e8449; }
+.badge-not { background-color: #fadbd8; color: #b03a2e; }
+.badge-analyzing { background-color: #fcf3cf; color: #b9770e; animation: blinker 1.5s linear infinite; }
+
+@keyframes blinker { 50% { opacity: 0.5; } }

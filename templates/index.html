@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Mariana Trench Analysis Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <style>
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .target-box {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .target-box input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .target-box button {
+            background-color: #f1c40f;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .target-box button:hover {
+            background-color: #f39c12;
+        }
+
+        .btn-stop {
+            background-color: #e74c3c;
+            margin-left: 8px;
+        }
+
+        .btn-stop:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            width: 500px;
+            max-width: 90%;
+            position: relative;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            color: #7f8c8d;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>🛡️ Mariana Trench Dashboard</h1>
+            <div>
+                <button onclick="openSettings()" class="btn btn-secondary"
+                    style="height: 38px; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; color: white; display: inline-block;">⚙️
+                    Settings</button>
+                <a href="/config" class="btn btn-start"
+                    style="height: 20px; line-height: 20px; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; color: white; display: inline-block; background-color: #3498db; text-decoration: none; margin-left: 10px;">⚙️
+                    Config Manager</a>
+            </div>
+        </div>
+
+        <div class="target-box">
+            <input type="text" id="new-target" placeholder="/path/to/Single.apk OR /path/to/Directory/of/APKs">
+            <button onclick="addTarget()">Track Target</button>
+            <button onclick="openAdbModal()"
+                style="margin-left: 10px; background-color: #9b59b6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">📱
+                Pull from Device</button>
+            <button onclick="analyzeAll()" class="btn-analyze"
+                style="margin-left: 15px; background-color: #e67e22; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">Analyze
+                All</button>
+        </div>
+
+        <div id="list-container">
+            Loading...
+        </div>
+
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeSettings()">&times;</span>
+            <h3>⚙️ Dashboard Settings</h3>
+            <div class="form-group">
+                <label>Mariana Trench Installation Dir (MT_DIR)</label>
+                <input type="text" id="mt-dir-input" placeholder="/path/to/mariana-trench">
+            </div>
+            <div class="form-group">
+                <label>Workspace APKs Dir (APK_DIR)</label>
+                <input type="text" id="apk-dir-input" placeholder="Where ADB pulled APKs should be saved">
+                <small style="color: #7f8c8d;">Example: /home/lzy/workspace_apks</small>
+            </div>
+            <button onclick="saveSettings()"
+                style="width: 100%; margin-top: 10px; background-color: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">Save
+                Settings</button>
+        </div>
+    </div>
+
+    <!-- ADB Pull Modal -->
+    <div id="adbModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeAdb()">&times;</span>
+            <h3>📱 Pull APK from Device</h3>
+            <div class="form-group">
+                <label>Select Device</label>
+                <div style="display:flex; gap:10px;">
+                    <select id="adb-devices-select" onchange="loadAdbPackages()">
+                        <option value="">Scanning...</option>
+                    </select>
+                    <button onclick="loadAdbDevices()"
+                        style="background-color: #95a5a6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Refresh</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Select Application Package</label>
+                <select id="adb-packages-select">
+                    <option value="">Select a device first</option>
+                </select>
+            </div>
+            <p id="adb-status" style="color: #e67e22; font-size: 0.9em; font-weight: bold;"></p>
+            <button id="adb-pull-btn" onclick="pullApk()"
+                style="width: 100%; margin-top: 10px; background-color: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;"
+                disabled>📥 Pull & Track</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v={{ range(1, 100000) | random }}"></script>
+</body>
+
+</html>
