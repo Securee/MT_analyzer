@@ -216,9 +216,11 @@ function fetchList() {
                     badge = '<span class="status-badge badge-analyzed">✓ Analyzed</span>';
                     if (item.is_server_running) {
                         buttons = `<a href="http://${window.location.hostname}:${item.port}" target="_blank" class="btn btn-running" style="color:white;text-decoration:none;">View Report ↗ (Port ${item.port})</a>
-                               <a href="javascript:void(0)" onclick="cmd('/stop/${item.db_path_encoded}')" class="btn btn-stop" style="color:white;text-decoration:none;">Stop</a>`;
+                               <a href="javascript:void(0)" onclick="cmd('/stop/${item.db_path_encoded}')" class="btn btn-stop" style="color:white;text-decoration:none;">Stop</a>
+                               <a href="javascript:void(0)" onclick="analyze('${item.path_encoded}')" class="btn btn-analyze" style="color:white;text-decoration:none; margin-left: 10px;">↻ Re-analyze</a>`;
                     } else {
-                        buttons = `<a href="javascript:void(0)" onclick="cmd('/start/${item.db_path_encoded}')" class="btn btn-start" style="color:white;text-decoration:none;">Start Server</a>`;
+                        buttons = `<a href="javascript:void(0)" onclick="cmd('/start/${item.db_path_encoded}')" class="btn btn-start" style="color:white;text-decoration:none;">Start Server</a>
+                               <a href="javascript:void(0)" onclick="analyze('${item.path_encoded}')" class="btn btn-analyze" style="color:white;text-decoration:none; margin-left: 10px;">↻ Re-analyze</a>`;
                     }
                 } else if (item.status === 'Not Analyzed') {
                     badge = '<span class="status-badge badge-not">✗ Not Analyzed</span>';

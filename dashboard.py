@@ -366,6 +366,12 @@ def api_add():
 def api_analyze(path_id):
     path = base64.urlsafe_b64decode(path_id.encode()).decode()
     if path not in analysis_jobs:
+        # Pre-emptively stop any active sapp server for this db
+        base_name = os.path.splitext(os.path.basename(path))[0]
+        db_path = os.path.join(os.path.dirname(path), f"{base_name}_out", "sapp.db")
+        if db_path in active_servers:
+            stop_server_internal(db_path)
+            
         analysis_jobs[path] = "Starting..."
         threading.Thread(target=run_analysis_worker, args=(path,)).start()
     return jsonify({"status": "ok"})
