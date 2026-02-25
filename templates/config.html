@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Config Manager - MT Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/config.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/config.css') }}?v={{ range(1, 100000) | random }}">
 </head>
+
 <body>
     <div class="header">
         <h1>⚙️ Config Manager</h1>
@@ -21,12 +23,18 @@
             <div class="editor-toolbar">
                 <label style="color:#7f8c8d;">Path:</label>
                 <input type="text" id="file-path" placeholder="e.g. model-generators/sinks/MySink.models" readonly>
+                <button class="btn btn-secondary" id="toggle-view-btn" onclick="toggleViewMode()"
+                    style="display:none;">👁 Visual Mode</button>
                 <button class="btn btn-success" onclick="saveFile()">Save</button>
                 <button class="btn btn-danger" onclick="deleteFile()">Delete</button>
             </div>
-            <textarea id="file-content" spellcheck="false" placeholder="Select a file from the left or click '+ New' to create one..."></textarea>
+            <textarea id="file-content" spellcheck="false"
+                placeholder="Select a file from the left or click '+ New' to create one..."></textarea>
+            <div id="visual-editor"
+                style="display: none; flex: 1; padding: 20px; overflow-y: auto; background: #fdfdfd;"></div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/config.js') }}?v={{ range(1, 100000) | random }}"></script>
 </body>
+
 </html>
