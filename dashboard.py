@@ -154,7 +154,9 @@ def run_analysis_worker(apk_path):
         "--output-directory", out_dir,
         "--model-generator-configuration-paths", get_config_file(),
         "--system-jar-configuration-path", os.path.join(mt_dir, "configuration/default_system_jar_paths.json"),
-        "--rules-paths", os.path.join(mt_dir, "configuration/rules.json")
+        "--rules-paths", os.path.join(mt_dir, "configuration/rules.json"),
+        "--lifecycles-paths", os.path.join(mt_dir, "configuration/lifecycles.json"),
+        "--model-generator-search-paths", os.path.join(mt_dir, "configuration/model-generators/")
     ]
     
     res = subprocess.run(mt_cmd, capture_output=True)
