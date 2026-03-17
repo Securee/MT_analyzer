@@ -16,6 +16,12 @@ The tool has been fully refactored from a CLI wrapper into a modern web applicat
    - The backend will scan your device, enumerate all installed packages, and allow you to pull a single APK or batch-pull ALL installed APKs directly to your workspace.
 3. **Configuration Manager**: Edit `model-generators`, `.json` configurations, and `rules.json` directly from the web interface.
 4. **Real-time Reporting**: Starts SAPP servers dynamically per application, allowing you to view detailed security vulnerability reports in an elegant interface.
+5. **🧠 AI-Assisted Security Analysis**: Integrated with Google Gemini to provide intelligent summaries and mitigation advice based on Mariana Trench findings.
+6. **📜 Detailed Analysis Logs**: Click the "Log" button to view real-time `stdout` and `stderr` output from the MT engine and Sapp, making it easy to debug engine crashes or APK compatibility issues.
+7. **SQLAlchemy 2.0+ Ready**: Includes deep patches for the `sapp` library and SQLAlchemy core to support modern database environments.
+
+## Technical Notes
+- **Compatibility**: The project includes automated patches for the `sapp` library to support SQLAlchemy 2.0+. This resolves issues like `MappedAnnotationError` and legacy `URL` constructor errors.
 
 ## Quick Start
 1. Ensure `adb` and `python3` are installed.

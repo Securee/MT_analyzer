@@ -205,8 +205,34 @@
                 disabled>📥 Pull & Track</button>
         </div>
     </div>
+    <!-- AI Analysis Modal -->
+    <div id="aiModal" class="modal">
+        <div class="modal-content" style="width: 800px; max-height: 80vh; overflow-y: auto;">
+            <span class="close-btn" onclick="closeAiModal()">&times;</span>
+            <h3>🧠 AI Security Analysis</h3>
+            <div id="ai-loading" style="display: none; text-align: center; padding: 20px;">
+                <p>🤖 Gemini is analyzing the security findings... Please wait.</p>
+                <div class="loader" style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+            </div>
+            <div id="ai-content" style="line-height: 1.6; color: #2c3e50;">
+                <!-- Markdown content will be injected here -->
+            </div>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/dashboard.js') }}?v={{ range(1, 100000) | random }}"></script>
+    <!-- Log Modal -->
+    <div id="logModal" class="modal">
+        <div class="modal-content" style="width: 900px; max-height: 85vh; display: flex; flex-direction: column;">
+            <span class="close-btn" onclick="closeLogModal()">&times;</span>
+            <h3 style="margin-bottom: 15px;">📜 Analysis Logs</h3>
+            <div id="log-content" style="flex: 1; overflow: auto; background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; font-size: 0.9em;">
+                <!-- Logs will be injected here -->
+            </div>
+            <button onclick="closeLogModal()" style="margin-top: 15px; background-color: #7f8c8d; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">Close</button>
+        </div>
+    </div>
 </body>
 
 </html>

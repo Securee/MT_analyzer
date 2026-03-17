@@ -217,17 +217,22 @@ function fetchList() {
                     if (item.is_server_running) {
                         buttons = `<a href="http://${window.location.hostname}:${item.port}" target="_blank" class="btn btn-running" style="color:white;text-decoration:none;">View Report ↗ (Port ${item.port})</a>
                                <a href="javascript:void(0)" onclick="cmd('/stop/${item.db_path_encoded}')" class="btn btn-stop" style="color:white;text-decoration:none;">Stop</a>
-                               <a href="javascript:void(0)" onclick="analyze('${item.path_encoded}')" class="btn btn-analyze" style="color:white;text-decoration:none; margin-left: 10px;">↻ Re-analyze</a>`;
+                               <a href="javascript:void(0)" onclick="analyze('${item.path_encoded}')" class="btn btn-analyze" style="color:white;text-decoration:none; margin-left: 10px;">↻ Re-analyze</a>
+                               <a href="javascript:void(0)" onclick="openLogModal('${item.path_encoded}')" class="btn" style="background-color: #34495e; color:white;text-decoration:none; margin-left: 10px;">📜 Log</a>
+                               <a href="javascript:void(0)" onclick="openAiModal('${item.path_encoded}')" class="btn" style="background-color: #8e44ad; color:white;text-decoration:none; margin-left: 10px;">🧠 AI Analyze</a>`;
                     } else {
                         buttons = `<a href="javascript:void(0)" onclick="cmd('/start/${item.db_path_encoded}')" class="btn btn-start" style="color:white;text-decoration:none;">Start Server</a>
-                               <a href="javascript:void(0)" onclick="analyze('${item.path_encoded}')" class="btn btn-analyze" style="color:white;text-decoration:none; margin-left: 10px;">↻ Re-analyze</a>`;
+                               <a href="javascript:void(0)" onclick="analyze('${item.path_encoded}')" class="btn btn-analyze" style="color:white;text-decoration:none; margin-left: 10px;">↻ Re-analyze</a>
+                               <a href="javascript:void(0)" onclick="openLogModal('${item.path_encoded}')" class="btn" style="background-color: #34495e; color:white;text-decoration:none; margin-left: 10px;">📜 Log</a>
+                               <a href="javascript:void(0)" onclick="openAiModal('${item.path_encoded}')" class="btn" style="background-color: #8e44ad; color:white;text-decoration:none; margin-left: 10px;">🧠 AI Analyze</a>`;
                     }
                 } else if (item.status === 'Not Analyzed') {
                     badge = '<span class="status-badge badge-not">✗ Not Analyzed</span>';
                     buttons = `<a href="javascript:void(0)" onclick="analyze('${item.path_encoded}')" class="btn btn-analyze" style="color:white;text-decoration:none;">Analyze Now</a>`;
                 } else if (item.status.startsWith('Failed')) {
                     badge = `<span class="status-badge badge-not">✗ ${item.status}</span>`;
-                    buttons = `<a href="javascript:void(0)" onclick="analyze('${item.path_encoded}')" class="btn btn-analyze" style="background-color: #e74c3c; color:white;text-decoration:none;">Retry Analysis</a>`;
+                    buttons = `<a href="javascript:void(0)" onclick="analyze('${item.path_encoded}')" class="btn btn-analyze" style="background-color: #e74c3c; color:white;text-decoration:none;">Retry Analysis</a>
+                               <a href="javascript:void(0)" onclick="openLogModal('${item.path_encoded}')" class="btn" style="background-color: #34495e; color:white;text-decoration:none; margin-left: 10px;">📜 Log</a>`;
                 } else {
                     badge = `<span class="status-badge badge-analyzing">⚙ ${item.status}</span>`;
                     buttons = `<span style="color:#7f8c8d; font-size:0.9em;">Please wait...</span>`;
@@ -270,4 +275,51 @@ function analyzeAll() {
 
 function cmd(url) {
     fetch(url).then(() => fetchList());
+}
+
+// --- AI Analysis Logic ---
+function openAiModal(path_encoded) {
+    document.getElementById('aiModal').style.display = 'flex';
+    document.getElementById('ai-loading').style.display = 'block';
+    document.getElementById('ai-content').innerHTML = '';
+
+    fetch('/api/llm_analyze/' + path_encoded, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('ai-loading').style.display = 'none';
+            if (data.status === 'ok') {
+                document.getElementById('ai-content').innerHTML = data.report_html;
+            } else {
+                document.getElementById('ai-content').innerHTML = `<p style="color: red;">❌ Error: ${data.message}</p>`;
+            }
+        })
+        .catch(e => {
+            document.getElementById('ai-loading').style.display = 'none';
+            document.getElementById('ai-content').innerHTML = `<p style="color: red;">❌ Network Error: ${e}</p>`;
+        });
+}
+
+function closeAiModal() { document.getElementById('aiModal').style.display = 'none'; }
+
+// --- Log Modal Logic ---
+function openLogModal(path_encoded) {
+    document.getElementById('logModal').style.display = 'flex';
+    document.getElementById('log-content').innerText = 'Loading logs...';
+
+    fetch('/api/logs/' + path_encoded)
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                document.getElementById('log-content').innerText = data.logs;
+            } else {
+                document.getElementById('log-content').innerText = 'Error: ' + data.message;
+            }
+        })
+        .catch(e => {
+            document.getElementById('log-content').innerText = 'Network Error: ' + e;
+        });
+}
+
+function closeLogModal() {
+    document.getElementById('logModal').style.display = 'none';
 }

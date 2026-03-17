@@ -5,7 +5,10 @@ import time
 import socket
 import json
 import base64
+import sqlite3
 from flask import Flask, render_template, redirect, url_for, jsonify, request
+from google import genai
+import markdown
 
 app = Flask(__name__)
 
@@ -52,6 +55,8 @@ port_pool = list(range(BASE_PORT, BASE_PORT + MAX_PORTS))
 
 # Ongoing analysis tasks: apk_path -> status_string
 analysis_jobs = {}
+# Analysis logs: apk_path -> full_output_string
+analysis_logs = {}
 
 def load_targets():
     if os.path.exists(TARGETS_FILE):
@@ -142,6 +147,7 @@ def run_analysis_worker(apk_path):
     os.makedirs(out_dir, exist_ok=True)
     
     analysis_jobs[apk_path] = "Running MT Engine..."
+    analysis_logs[apk_path] = f"--- Analysis started for {apk_path} ---\n"
     
     mt_dir = settings.get("MT_DIR", "")
     if not mt_dir:
@@ -160,9 +166,13 @@ def run_analysis_worker(apk_path):
     ]
     
     res = subprocess.run(mt_cmd, capture_output=True)
+    stdout_mt = res.stdout.decode(errors='replace')
+    stderr_mt = res.stderr.decode(errors='replace')
+    analysis_logs[apk_path] += f"\n[MT STDOUT]\n{stdout_mt}\n[MT STDERR]\n{stderr_mt}\n"
+
     if res.returncode != 0:
         error_msg = "Failed (MT Error)"
-        stderr_out = res.stderr.decode()
+        stderr_out = stderr_mt
         if "UnknownSecondaryDexModeException" in stderr_out:
             error_msg = "Failed (Packed/Obfuscated APK)"
         analysis_jobs[apk_path] = error_msg
@@ -174,6 +184,10 @@ def run_analysis_worker(apk_path):
     
     sapp_cmd = ["sapp", "--database-name", db_path, "--tool", "mariana-trench", "analyze", out_dir]
     res = subprocess.run(sapp_cmd, capture_output=True)
+    stdout_sapp = res.stdout.decode(errors='replace')
+    stderr_sapp = res.stderr.decode(errors='replace')
+    analysis_logs[apk_path] += f"\n[SAPP STDOUT]\n{stdout_sapp}\n[SAPP STDERR]\n{stderr_sapp}\n"
+
     if res.returncode != 0:
         analysis_jobs[apk_path] = "Failed (Sapp Error)"
         print(f"Sapp Error on {apk_path}: {res.stderr.decode()}")
@@ -351,6 +365,12 @@ def api_adb_pull():
 def api_list():
     return jsonify(get_apk_list())
 
+@app.route("/api/logs/<path_id>")
+def api_logs(path_id):
+    path = base64.urlsafe_b64decode(path_id.encode()).decode()
+    logs = analysis_logs.get(path, "No logs available for this task.")
+    return jsonify({"status": "ok", "logs": logs})
+
 @app.route("/api/add", methods=["POST"])
 def api_add():
     path = request.json.get("path")
@@ -365,7 +385,8 @@ def api_add():
 @app.route("/api/analyze/<path_id>", methods=["POST"])
 def api_analyze(path_id):
     path = base64.urlsafe_b64decode(path_id.encode()).decode()
-    if path not in analysis_jobs:
+    current_status = analysis_jobs.get(path)
+    if current_status is None or current_status.startswith("Failed") or current_status == "Analyzed" or "Error" in current_status:
         # Pre-emptively stop any active sapp server for this db
         base_name = os.path.splitext(os.path.basename(path))[0]
         db_path = os.path.join(os.path.dirname(path), f"{base_name}_out", "sapp.db")
@@ -385,6 +406,73 @@ def api_analyze_all():
                 analysis_jobs[path] = "Starting..."
                 threading.Thread(target=run_analysis_worker, args=(path,)).start()
     return jsonify({"status": "ok"})
+
+@app.route("/api/llm_analyze/<path_id>", methods=["POST"])
+def api_llm_analyze(path_id):
+    path = base64.urlsafe_b64decode(path_id.encode()).decode()
+    base_name = os.path.splitext(os.path.basename(path))[0]
+    db_path = os.path.join(os.path.dirname(path), f"{base_name}_out", "sapp.db")
+    
+    if not os.path.exists(db_path):
+        return jsonify({"status": "error", "message": "sapp.db not found. APK must be analyzed first."}), 400
+        
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return jsonify({"status": "error", "message": "GEMINI_API_KEY environment variable is missing."}), 500
+        
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        
+        # We query the `issues` table to collect findings
+        # In a real SAPP DB these usually map to issue instances, but we'll try to extract what we can
+        # We check if issues table exists first
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='issues'")
+        if not cur.fetchone():
+            return jsonify({"status": "error", "message": "No issues table found in database. The analysis might have failed or found absolutely nothing."}), 404
+            
+        cur.execute("SELECT code, message, callable, filename, line FROM issues LIMIT 50")
+        rows = cur.fetchall()
+        conn.close()
+        
+        if not rows:
+            return jsonify({"status": "ok", "report_html": "<h3>Great News!</h3><p>No vulnerabilities were discovered by Mariana Trench in this application.</p>"})
+            
+        findings_text = ""
+        for i, row in enumerate(rows, 1):
+            code, message, callable_name, filename, line = row
+            findings_text += f"Issue #{i}: [{callable_name}] in {filename}:{line}\n"
+            findings_text += f"Details: {message}\n\n"
+            
+        prompt = f"""
+You are an expert Android application security analyst.
+I have run the Mariana Trench static analysis tool on an Android APK: '{base_name}.apk'.
+Below are the vulnerabilities and data-flow issues reported by the tool.
+
+### Findings:
+{findings_text}
+
+### Task:
+1. Provide a high-level summary of the security posture based on these findings.
+2. For each distinct type of vulnerability or data flow reported, explain the potential exploit scenario.
+3. Assess the likelihood of these being true positives or false positives based on the paths, standard Android paradigms, or the lack of context.
+4. Recommend concrete remediation strategies for the developers.
+
+Present your report in clear, well-structured Markdown format.
+"""
+        
+        # initialize Gemini client
+        client = genai.Client() # Uses the GEMINI_API_KEY environment variable implicitly
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
+        
+        html_report = markdown.markdown(response.text, extensions=['fenced_code', 'tables'])
+        return jsonify({"status": "ok", "report_html": html_report})
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/start/<path_id>")
 def start_server(path_id):
